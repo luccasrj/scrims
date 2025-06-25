@@ -1,5 +1,8 @@
 Config = {}
 
+Config.roundTime = 120
+Config.freezeTime = 5
+
 Config.mapPool = {
     ["predio"] = {
         spawnTeam1 = {

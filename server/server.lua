@@ -53,6 +53,8 @@ local function generateMatch()
 
     Match[code] = {
         gameStarted = false,
+        roundActive = false,
+        roundTime = Config.roundTime,
         map = map,
         dimension = dimension,
         team1 = { players = {}, points = 0 },
@@ -98,6 +100,37 @@ local function getPlayerTeam(source)
     return nil, nil
 end
 
+local function startRound(code)
+    local match = Match[code]
+    if not match then
+        print("[^3SCRIMS^7] Tentativa de iniciar round em partida inexistente: ".. code ..".")
+        return
+    end
+
+    if match.roundActive then
+        print("[^3SCRIMS^7] Round já está ativo na partida: ".. code ..".")
+        return
+    end
+
+    match.roundActive = true
+
+    local allPlayers = {}
+
+    for _, player in ipairs(match.team1.players) do
+        table.insert(allPlayers, {source = player.source, team = "team1"})
+    end
+
+    for _, player in ipairs(match.team2.players) do
+        table.insert(allPlayers, {source = player.source, team = "team2"})
+    end
+
+    Citizen.CreateThread(function()
+        for _, p in ipairs(allPlayers) do
+            TriggerClientEvent("scrims:startRound", p.source, p.team, match.map)
+        end
+    end)
+end
+
 local function joinMatch(source, code)
     if not Match[code] then return end
 
@@ -121,6 +154,10 @@ local function joinMatch(source, code)
     SetPlayerRoutingBucket(source, Match[code].dimension)
     TriggerClientEvent("scrims:joinMatch", source, Match[code], teamJoined)
     print("[^3SCRIMS^7] O jogador " .. source .. " entrou na partida " .. code .. ".")
+
+    if #team1 + #team2 == 10 then
+        startRound(code)
+    end
 end
 
 local function cleanupMatchIfEmpty(code)
@@ -177,7 +214,7 @@ end)
 
 RegisterCommand("generate-match", function()
     local code = generateMatch()
-    print("[^3SCRIMS^7] Partida criada com o codigo:", code)
+    print("[^3SCRIMS^7] Partida criada com o codigo: ".. code ..".")
 end)
 
 RegisterCommand("actives-match", function()
